@@ -1,7 +1,13 @@
-# subscribe to cloudcupcake-1217
 #!/bin/bash
 YELLOW='\033[0;33m'
 NC='\033[0m' 
+pattern=(
+"**********************************************************"
+"**                 S U B S C R I B E  TO                **"
+"**                   CloudCupcake-1217                  **"
+"**                                                      **"
+"**********************************************************"
+)
 for line in "${pattern[@]}"
 do
     echo -e "${YELLOW}${line}${NC}"
@@ -84,10 +90,14 @@ export ZONE=$(gcloud compute instances list linux-instance --format 'csv[no-head
 gcloud compute scp prepare_disk.sh linux-instance:/tmp --project=$DEVSHELL_PROJECT_ID --zone=$ZONE --quiet
 
 gcloud compute ssh linux-instance --project=$DEVSHELL_PROJECT_ID --zone=$ZONE --quiet --command="bash /tmp/prepare_disk.sh"
-
+pattern=(
+"**********************************************************"
+"**                                                      **"
+"**              LAB COMPLETED SUCCESSFULLY              **"
+"**                                                      **"
+"**********************************************************"
+)
 for line in "${pattern[@]}"
 do
     echo -e "${YELLOW}${line}${NC}"
 done
-
-echo "lab completed successfully"

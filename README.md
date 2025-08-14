@@ -14,9 +14,10 @@ This repository contains automation scripts and resources for completing the **S
 You can execute the automation script directly in Google Cloud Shell by running the following commands:
 
 ```bash
-curl -LO https://github.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/raw/main/Speech%20to%20Text%20Transcription%20with%20the%20Cloud%20Speech%20API/cloudcupcake.sh
-sudo chmod +x cloudcupcake.sh
+curl -LO raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Extract%2C%20Analyze%2C%20and%20Translate%20Text%20from%20Images%20with%20the%20Cloud%20ML%20APIs/cloudcupcake.sh
+chmod +x cloudcupcake.sh
 ./cloudcupcake.sh
+
 ```
 **Lab Name:** Extract, Analyze, and Translate Text from Images with the Cloud ML APIs  
 **Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40269)  

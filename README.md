@@ -5,11 +5,10 @@ This repository contains automation scripts and resources for completing the **S
 
 ---
 
-## 📌 Lab Details
+## 📌 Lab Details:
+
 **Lab Name:** Speech to Text Transcription with the Cloud Speech API  
 **Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40265)  
-
----
 
 ## 🚀 Script for Automation
 You can execute the automation script directly in Google Cloud Shell by running the following commands:

@@ -10,7 +10,7 @@ This repository contains automation scripts and resources for completing the **S
 **Lab Name:** Speech to Text Transcription with the Cloud Speech API  
 **Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40265)  
 
-## 🚀 Script for Automation
+## 🚀 Script for Automation:
 You can execute the automation script directly in Google Cloud Shell by running the following commands:
 
 ```bash
@@ -24,7 +24,7 @@ chmod +x cloudcupcake.sh
 **Lab Name:** Extract, Analyze, and Translate Text from Images with the Cloud ML APIs  
 **Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40269)  
 
-## 🚀 Script for Automation
+## 🚀 Script for Automation:
 You can execute the automation script directly in Google Cloud Shell by running the following commands:
 
 ```bash

@@ -1,115 +1,90 @@
 #!/bin/bash
-set -e  # Exit if any command fails
+# cloudcupcake1.sh - Automates 12-task Kubernetes lab
+# Author: CloudCupcake 🍰
 
-# ====== CONFIG ======
-ZONE=$(gcloud config get-value compute/zone)
+set -e
+
+echo "========== CloudCupcake Kubernetes Lab =========="
+echo "Current GCP Project: $(gcloud config get-value project)"
 PROJECT_ID=$(gcloud config get-value project)
-GITHUB_EMAIL="your-email@example.com"  # CHANGE to your GitHub email
-APP_NAME="gceme"
-CLUSTER="jenkins-cd"
 
-echo "==== Setting Zone ===="
-gcloud config set compute/zone $ZONE
+DEFAULT_REGION=$(gcloud config get-value compute/region)
+echo "Detected default region: $DEFAULT_REGION"
 
-# ====== Task 1: Download Source Code ======
-echo "==== Downloading Lab Source Code ===="
-gsutil cp gs://spls/gsp051/continuous-deployment-on-kubernetes.zip .
-unzip -q continuous-deployment-on-kubernetes.zip
-cd continuous-deployment-on-kubernetes
+read -p "Enter zone for Kubernetes cluster (e.g., us-east1-d): " ZONE
 
-# ====== Task 2: Provision Jenkins ======
-echo "==== Creating Kubernetes Cluster ===="
-gcloud container clusters create $CLUSTER \
-  --num-nodes 2 \
-  --machine-type e2-standard-2 \
-  --scopes "https://www.googleapis.com/auth/source.read_write,cloud-platform"
+if [ -z "$ZONE" ]; then
+  echo "Zone cannot be empty. Exiting."
+  exit 1
+fi
 
-gcloud container clusters get-credentials $CLUSTER
-kubectl cluster-info
+echo "Using Project: $PROJECT_ID | Region: $DEFAULT_REGION | Zone: $ZONE"
+echo "================================================="
 
-# ====== Task 3: Set up Helm ======
-echo "==== Setting up Helm ===="
-helm repo add jenkins https://charts.jenkins.io
-helm repo update
+# Task 1: Create Kubernetes Cluster
+echo "========== Task 1: Create Kubernetes Cluster =========="
+gcloud container clusters create cloudcupcake-cluster \
+  --zone "$ZONE" \
+  --num-nodes 3
 
-# ====== Task 4: Install Jenkins ======
-echo "==== Installing Jenkins via Helm ===="
-helm install cd jenkins/jenkins -f jenkins/values.yaml --wait
+# Task 2: Get credentials for cluster
+echo "========== Task 2: Get credentials for cluster =========="
+gcloud container clusters get-credentials cloudcupcake-cluster --zone "$ZONE"
 
-kubectl create clusterrolebinding jenkins-deploy \
-  --clusterrole=cluster-admin \
-  --serviceaccount=default:cd-jenkins
+# Task 3: Create deployment
+echo "========== Task 3: Create deployment =========="
+kubectl create deployment hello-server --image=gcr.io/google-samples/hello-app:1.0
 
-POD_NAME=$(kubectl get pods -l "app.kubernetes.io/component=jenkins-master" -o jsonpath="{.items[0].metadata.name}")
-kubectl port-forward $POD_NAME 8080:8080 >> /dev/null &
+# Task 4: Expose deployment as LoadBalancer
+echo "========== Task 4: Expose deployment as LoadBalancer =========="
+kubectl expose deployment hello-server \
+  --type=LoadBalancer \
+  --port 80 \
+  --target-port 8080
 
-ADMIN_PASS=$(kubectl get secret cd-jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode)
-echo "==== Jenkins Admin Password ===="
-echo "$ADMIN_PASS"
+# Task 5: Scale deployment
+echo "========== Task 5: Scale deployment =========="
+kubectl scale deployment hello-server --replicas=3
 
-# ====== Task 6-7: Deploy Sample App ======
-echo "==== Deploying Sample App to Production and Canary ===="
-cd sample-app
-kubectl create ns production
-kubectl apply -f k8s/production -n production
-kubectl apply -f k8s/canary -n production
-kubectl apply -f k8s/services -n production
-kubectl scale deployment gceme-frontend-production -n production --replicas 4
+# Task 6: Create namespace
+echo "========== Task 6: Create namespace =========="
+kubectl create namespace cupcake-ns
 
-FRONTEND_SERVICE_IP=""
-while [ -z "$FRONTEND_SERVICE_IP" ]; do
-  FRONTEND_SERVICE_IP=$(kubectl get svc gceme-frontend -n production -o jsonpath="{.status.loadBalancer.ingress[0].ip}" 2>/dev/null || true)
-  [ -z "$FRONTEND_SERVICE_IP" ] && echo "Waiting for LoadBalancer IP..." && sleep 10
-done
-echo "Production Service IP: $FRONTEND_SERVICE_IP"
-curl http://$FRONTEND_SERVICE_IP/version
+# Task 7: Deploy in namespace
+echo "========== Task 7: Deploy in namespace =========="
+kubectl create deployment cupcake-server \
+  --image=gcr.io/google-samples/hello-app:2.0 \
+  -n cupcake-ns
 
-# ====== Task 8-9: GitHub Setup for Jenkins ======
-echo "==== Setting up GitHub Repo ===="
-curl -sS https://webi.sh/gh | sh
-gh auth login --web
-GITHUB_USERNAME=$(gh api user -q ".login")
-git config --global user.name "$GITHUB_USERNAME"
-git config --global user.email "$GITHUB_EMAIL"
-gh repo create default --private --confirm
+# Task 8: Expose namespace deployment
+echo "========== Task 8: Expose namespace deployment =========="
+kubectl expose deployment cupcake-server \
+  --type=NodePort \
+  --port 80 \
+  --target-port 8080 \
+  -n cupcake-ns
 
-git init
-git remote add origin https://github.com/${GITHUB_USERNAME}/default
-git add .
-git commit -m "Initial commit"
-git push origin master
+# Task 9: Create ConfigMap
+echo "========== Task 9: Create ConfigMap =========="
+kubectl create configmap app-config --from-literal=APP_COLOR=blue
 
-# ====== Create SSH Key for GitHub Access ======
-echo "==== Creating SSH Key for GitHub ===="
-ssh-keygen -t rsa -b 4096 -N '' -f id_github -C "$GITHUB_EMAIL"
-gh ssh-key add id_github.pub --title "SSH_KEY_LAB"
+# Task 10: Create Secret
+echo "========== Task 10: Create Secret =========="
+kubectl create secret generic db-secret \
+  --from-literal=DB_USER=admin \
+  --from-literal=DB_PASS=secret123
 
-ssh-keyscan -t rsa github.com > known_hosts.github
+# Task 11: Enable autoscaling
+echo "========== Task 11: Enable autoscaling =========="
+kubectl autoscale deployment hello-server \
+  --cpu-percent=80 \
+  --min=1 \
+  --max=5
 
-# ====== Modify Jenkinsfile ======
-echo "==== Modifying Jenkinsfile ===="
-sed -i "s/REPLACE_WITH_YOUR_PROJECT_ID/$PROJECT_ID/" Jenkinsfile
-sed -i "s/CLUSTER_ZONE = \"\"/CLUSTER_ZONE = \"$ZONE\"/" Jenkinsfile
+# Task 12: Rolling update
+echo "========== Task 12: Rolling update =========="
+kubectl set image deployment hello-server \
+  hello-server=gcr.io/google-samples/hello-app:2.0
 
-# ====== Task 9-10: Development Branch ======
-git checkout -b new-feature
-sed -i 's/card blue/card orange/g' html.go
-sed -i 's/1.0.0/2.0.0/' main.go
-git add Jenkinsfile html.go main.go
-git commit -m "Version 2.0.0"
-git push origin new-feature
-
-# ====== Task 11: Canary Release ======
-git checkout -b canary
-git push origin canary
-
-# ====== Task 12: Deploy to Production ======
-git checkout master
-git merge canary
-git push origin master
-
-echo "==== Waiting for Production to Update ===="
-while true; do
-  curl http://$FRONTEND_SERVICE_IP/version
-  sleep 2
-done
+echo "========== All tasks completed! =========="
+echo "🎉 Subscribe to CloudCupcake 🍰 for more labs!"

@@ -18,6 +18,17 @@ curl -LO https://github.com/ChanduCharanSample/Level-1-Application-Design-and-De
 sudo chmod +x cloudcupcake.sh
 ./cloudcupcake.sh
 ```
+**Lab Name:** Extract, Analyze, and Translate Text from Images with the Cloud ML APIs  
+**Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40269)  
+
+## 🚀 Script for Automation
+You can execute the automation script directly in Google Cloud Shell by running the following commands:
+
+```bash
+curl -LO https://github.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/raw/main/Speech%20to%20Text%20Transcription%20with%20the%20Cloud%20Speech%20API/cloudcupcake.sh
+sudo chmod +x cloudcupcake.sh
+./cloudcupcake.sh
+```
 ---
 
 🎉 Congratulations!

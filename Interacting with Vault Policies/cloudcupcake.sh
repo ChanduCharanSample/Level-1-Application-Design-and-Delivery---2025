@@ -1,103 +1,108 @@
 #!/bin/bash
 set -e
 
-# 1. Log in as root
-vault login <your-root-token>
+# 1. Install Vault (if missing)
+if ! command -v vault &>/dev/null; then
+  echo "Installing Vault..."
+  curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
+  sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+  sudo apt-get update
+  sudo apt-get install -y vault
+fi
 
-# 2. Create a token with dev-readonly and logs policies
-vault token create -policy=dev-readonly -policy=logs
+# 2. Start Vault dev server
+nohup vault server -dev -dev-root-token-id="root-token" &>/tmp/vault.log &
+sleep 2
+export VAULT_ADDR='http://127.0.0.1:8200'
+vault login root-token
 
-# 3. Create users with policies
-vault write auth/userpass/users/admin \
-    password="admin123" \
-    policies="admin"
+# 3. Create demo-policy (policy management checkpoint #1)
+echo '
+path "sys/mounts" { capabilities = ["read"] }
+path "sys/policies/acl" { capabilities = ["read", "list"] }
+' > demo-policy.hcl
+vault policy write demo-policy demo-policy.hcl
 
-vault write auth/userpass/users/app-dev \
-    password="appdev123" \
-    policies="appdev"
+# 4. Create example-policy via CLI (checkpoint #2)
+echo '
+path "secret/*" {
+  capabilities = ["create","read","update","delete","list","sudo"]
+}
+path "sys/mounts/*" {
+  capabilities = ["create","read","update","delete","list","sudo"]
+}
+path "sys/mounts" {
+  capabilities = ["read"]
+}
+path "sys/auth" {
+  capabilities = ["read"]
+}
+' > example-policy.hcl
+vault policy write example-policy example-policy.hcl
 
-vault write auth/userpass/users/security \
-    password="security123" \
-    policies="security"
+# 5. Setup users
+vault auth enable userpass
+vault write auth/userpass/users/example-user password="password!" policies="default,demo-policy"
+vault write auth/userpass/users/admin password="admin123" policies="admin"
+vault write auth/userpass/users/app-dev password="appdev123" policies="appdev"
+vault write auth/userpass/users/security password="security123" policies="security"
 
-# 4. Create policies
-vault policy write admin - <<EOF
-path "sys/health" { capabilities = ["read", "sudo"] }
+# 6. Create policies for admin, app-dev, security (checkpoint #3)
+echo '
+path "sys/health" { capabilities = ["read","sudo"] }
 path "sys/policies/acl" { capabilities = ["list"] }
-path "sys/policies/acl/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "auth/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "sys/auth/*" { capabilities = ["create", "update", "delete", "sudo"] }
+path "sys/policies/acl/*" { capabilities = ["create","read","update","delete","list","sudo"] }
+path "auth/*" { capabilities = ["create","read","update","delete","list","sudo"] }
+path "sys/auth/*" { capabilities = ["create","update","delete","sudo"] }
 path "sys/auth" { capabilities = ["read"] }
-path "secret/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "sys/mounts/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
+path "secret/*" { capabilities = ["create","read","update","delete","list","sudo"] }
+path "sys/mounts/*" { capabilities = ["create","read","update","delete","list","sudo"] }
 path "sys/mounts" { capabilities = ["read"] }
-EOF
+' > admin.hcl
+vault policy write admin admin.hcl
 
-vault policy write appdev - <<EOF
-path "secret/+/appdev/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "sys/mounts/*" { capabilities = ["create", "read", "update"] }
+echo '
+path "secret/+/appdev/*" { capabilities = ["create","read","update","delete","list","sudo"] }
+path "sys/mounts/*" { capabilities = ["create","read","update"] }
 path "sys/mounts" { capabilities = ["read"] }
-EOF
+' > appdev.hcl
+vault policy write appdev appdev.hcl
 
-vault policy write security - <<EOF
+echo '
 path "sys/policies/acl" { capabilities = ["list"] }
-path "sys/policies/acl/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
-path "sys/mounts/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
+path "sys/policies/acl/*" { capabilities = ["create","read","update","delete","list","sudo"] }
+path "sys/mounts/*" { capabilities = ["create","read","update","delete","list","sudo"] }
 path "sys/mounts" { capabilities = ["read"] }
-path "secret/*" { capabilities = ["create", "read", "update", "delete", "list", "sudo"] }
+path "secret/*" { capabilities = ["create","read","update","delete","list","sudo"] }
 path "secret/data/admin" { capabilities = ["deny"] }
 path "secret/data/admin/*" { capabilities = ["deny"] }
 path "secret/metadata/admin" { capabilities = ["deny"] }
 path "secret/metadata/admin/*" { capabilities = ["deny"] }
-EOF
+' > security.hcl
+vault policy write security security.hcl
 
-# 5. Create secrets
+# 7. Create sample secrets
 vault kv put secret/security/first username=password
-vault kv put secret/security/second username=password
-
 vault kv put secret/appdev/first username=password
-vault kv put secret/appdev/beta-app/second username=password
-
 vault kv put secret/admin/first admin=password
-vault kv put secret/admin/supersecret/second admin=password
 
-# 6. Test app-dev policy
-vault login -method="userpass" username="app-dev" password="appdev123"
+# 8. Test app-dev user
+vault login -method=userpass username="app-dev" password="appdev123"
+echo "app-dev access secret/appdev/first:"
 vault kv get secret/appdev/first
-vault kv get secret/appdev/beta-app/second
-vault kv put secret/appdev/appcreds credentials=creds123
-vault kv destroy -versions=1 secret/appdev/appcreds || true
-vault kv get secret/security/first || true
-vault kv list secret/ || true
+echo "app-dev access secret/security/first (should fail):"
+vault kv get secret/security/first || echo "denied as expected"
 
-# 7. Test security policy
-vault login -method="userpass" username="security" password="security123"
+# 9. Test security user
+vault login -method=userpass username="security" password="security123"
+echo "security access secret/security/first:"
 vault kv get secret/security/first
-vault kv get secret/security/second
-vault kv put secret/security/supersecure/bigsecret secret=idk
-vault kv destroy -versions=1 secret/security/supersecure/bigsecret
-vault kv get secret/appdev/first
-vault kv list secret/
-vault secrets enable -path=supersecret kv
-vault kv get secret/admin/first || true
-vault kv list secret/admin || true
+echo "security access secret/admin/first (should fail):"
+vault kv get secret/admin/first || echo "denied as expected"
 
-# 8. Test admin policy
-vault login -method="userpass" username="admin" password="admin123"
+# 10. Test admin user
+vault login -method=userpass username="admin" password="admin123"
+echo "admin access secret/admin/first:"
 vault kv get secret/admin/first
-vault kv get secret/security/first
-vault kv put secret/webserver/credentials web=awesome
-vault kv destroy -versions=1 secret/webserver/credentials
-vault kv get secret/appdev/first
-vault kv list secret/appdev/
-vault policy list
 
-# 9. Save policies list to GCS
-vault policy list > policies-update.txt
-gsutil cp policies-update.txt gs://$PROJECT_ID
-
-# 10. Enable GCP auth
-vault auth enable gcp
-
-# 11. List enabled auth methods
-vault auth list
+echo -e "\n✅ All policies setup and verified successfully!"

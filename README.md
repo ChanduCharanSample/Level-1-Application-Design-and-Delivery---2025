@@ -1,8 +1,8 @@
 # Level-1-Application-Design-and-Delivery---2025
 
 ## 🎯 Lab Overview
-This repository contains automation scripts and resources for completing the **Speech to Text Transcription with the Cloud Speech API** lab as part of the
-[Level 1: Application Design and Delivery - 2025 Arcade Game](https://www.cloudskillsboost.google/games/6394).
+This repository contains automation scripts and resources for completing the **Game Level 1: Application Design and Delivery** lab as part of the
+[ Arcade Game](https://www.cloudskillsboost.google/games/6394).
 
 ---
 

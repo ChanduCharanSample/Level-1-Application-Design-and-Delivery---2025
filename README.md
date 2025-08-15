@@ -35,6 +35,19 @@ chmod +x cloudcupcake.sh
 
 ```
 ---
+## 📌 Lab Details:
+
+**Lab Name:**  Getting Started with Vault
+
+**Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40270)  
+
+## 🚀 Script for Automation:
+You can execute the automation script directly in Google Cloud Shell by running the following commands:
+```
+curl -LO https://raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Getting%20Started%20with%20Vault/cloudcupcake.sh
+chmod +x cloudcupcake.sh
+./cloudcupcake.sh
+```
 
 ## 📌 Lab Details:
 

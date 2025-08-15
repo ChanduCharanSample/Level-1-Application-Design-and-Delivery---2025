@@ -1,118 +1,112 @@
 #!/bin/bash
 set -e
 
-echo "=== Installing Vault ==="
+echo "===== Installing Vault ====="
 sudo apt-get update -y
-sudo apt-get install -y curl gnupg lsb-release
+sudo apt-get install -y unzip curl jq
+
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
 sudo apt-get update -y
 sudo apt-get install -y vault
 
-echo "=== Starting Vault Dev Server ==="
+echo "===== Starting Vault in dev mode ====="
 pkill vault || true
-nohup vault server -dev > vault.log 2>&1 &
-sleep 5
+vault server -dev -dev-root-token-id="root" > vault.log 2>&1 &
+sleep 3
 
 export VAULT_ADDR='http://127.0.0.1:8200'
-ROOT_TOKEN=$(grep 'Root Token:' vault.log | awk '{print $3}')
-export VAULT_TOKEN="$ROOT_TOKEN"
-vault login "$ROOT_TOKEN"
+export VAULT_TOKEN='root'
+echo "VAULT_ADDR=$VAULT_ADDR"
+echo "VAULT_TOKEN=$VAULT_TOKEN"
 
-echo "=== Enabling Userpass Auth ==="
+echo "===== Login to Vault ====="
+vault login $VAULT_TOKEN
+
+echo "===== Enabling userpass auth ====="
 vault auth enable userpass || true
 
-echo "=== Creating Users ==="
-vault write auth/userpass/users/admin password="admin123" policies="admin"
-vault write auth/userpass/users/app-dev password="appdev123" policies="appdev"
-vault write auth/userpass/users/security password="security123" policies="security"
-
-echo "=== Task 1: Create demo-policy ==="
-tee demo-policy.hcl <<EOF
+echo "===== Creating demo-policy ====="
+cat > demo-policy.hcl <<EOF
 path "secret/data/demo/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
 EOF
 vault policy write demo-policy demo-policy.hcl
 
-echo "=== Task 2: Create & Manage example-policy ==="
-tee example-policy.hcl <<EOF
+echo "===== Creating example-policy ====="
+cat > example-policy.hcl <<EOF
 path "secret/data/example/*" {
   capabilities = ["create", "read", "update", "delete", "list"]
 }
 EOF
 vault policy write example-policy example-policy.hcl
 
-# Update example-policy
-tee example-policy.hcl <<EOF
-path "secret/data/example/*" {
-  capabilities = ["create", "read", "update", "delete", "list"]
-}
-path "sys/policies/acl" {
-  capabilities = ["list"]
-}
-EOF
-vault policy write example-policy example-policy.hcl
-
-# Read example-policy
+echo "===== Managing example-policy ====="
+echo "---- Reading example-policy ----"
 vault policy read example-policy
 
-# Delete and Recreate example-policy
-vault policy delete example-policy
+echo "---- Updating example-policy ----"
+cat > example-policy.hcl <<EOF
+path "secret/data/example/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
+}
+path "secret/data/extra/*" {
+  capabilities = ["read", "list"]
+}
+EOF
 vault policy write example-policy example-policy.hcl
 
-echo "=== Task 3: Create different access policies for users ==="
+echo "---- Deleting example-policy ----"
+vault policy delete example-policy
+echo "---- Recreating example-policy ----"
+vault policy write example-policy example-policy.hcl
 
-# Admin policy
-tee admin-policy.hcl <<EOF
-path "secret/*" {
-  capabilities = ["create", "read", "update", "delete", "list", "sudo"]
+echo "===== Creating policies for secrets ====="
+cat > admin-policy.hcl <<EOF
+path "secret/data/*" {
+  capabilities = ["create", "read", "update", "delete", "list"]
 }
 EOF
 vault policy write admin admin-policy.hcl
 
-# Appdev policy
-tee appdev-policy.hcl <<EOF
-path "secret/data/appdev/*" {
-  capabilities = ["create", "read", "update", "delete", "list"]
+cat > appdev-policy.hcl <<EOF
+path "secret/data/app/*" {
+  capabilities = ["create", "read", "update", "list"]
 }
 EOF
 vault policy write appdev appdev-policy.hcl
 
-# Security policy
-tee security-policy.hcl <<EOF
-path "secret/*" {
+cat > security-policy.hcl <<EOF
+path "secret/data/security/*" {
   capabilities = ["read", "list"]
-}
-path "secret/data/admin/*" {
-  capabilities = ["deny"]
 }
 EOF
 vault policy write security security-policy.hcl
 
-echo "=== Creating Secrets for Testing ==="
-vault kv put secret/security/first username=pass
-vault kv put secret/security/second username=pass
-vault kv put secret/appdev/first username=pass
-vault kv put secret/appdev/beta-app/second username=pass
-vault kv put secret/admin/first admin=pass
-vault kv put secret/admin/supersecret/second admin=pass
-vault kv put secret/demo/first value=demo123
-vault kv put secret/example/first value=example123
+echo "===== Creating users ====="
+vault write auth/userpass/users/alice password="alicepass" policies=admin
+vault write auth/userpass/users/bob password="bobpass" policies=appdev
+vault write auth/userpass/users/charlie password="charliepass" policies=security
 
-echo "=== Testing Access for Each User ==="
+echo "===== Writing secrets ====="
+vault kv put secret/demo/secret1 value="demo_secret"
+vault kv put secret/example/secret1 value="example_secret"
+vault kv put secret/app/appsecret value="app_secret_value"
+vault kv put secret/security/secsecret value="security_secret_value"
 
-echo "--- Admin ---"
-vault login -method=userpass username=admin password=admin123
-vault kv list secret/
+echo "===== Testing policies ====="
+echo "---- Testing Alice (admin) ----"
+VAULT_TOKEN=$(vault login -method=userpass username=alice password=alicepass -format=json | jq -r '.auth.client_token')
+VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=$VAULT_TOKEN vault kv get secret/app/appsecret
 
-echo "--- Appdev ---"
-vault login -method=userpass username=app-dev password=appdev123
-vault kv get secret/appdev/first || echo "Access denied"
+echo "---- Testing Bob (appdev) ----"
+VAULT_TOKEN=$(vault login -method=userpass username=bob password=bobpass -format=json | jq -r '.auth.client_token')
+VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=$VAULT_TOKEN vault kv get secret/app/appsecret
 
-echo "--- Security ---"
-vault login -method=userpass username=security password=security123
-vault kv get secret/security/first || echo "Access denied"
-vault kv get secret/admin/first || echo "Access denied (expected)"
+echo "---- Testing Charlie (security) ----"
+VAULT_TOKEN=$(vault login -method=userpass username=charlie password=charliepass -format=json | jq -r '.auth.client_token')
+VAULT_ADDR=http://127.0.0.1:8200 VAULT_TOKEN=$VAULT_TOKEN vault kv get secret/security/secsecret
 
-echo "=== All Lab Tasks Completed Successfully ==="
+echo "===== Lab automation complete ====="
+echo "Vault is running in background. Run 'vault status' to check."

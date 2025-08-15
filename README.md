@@ -35,6 +35,32 @@ chmod +x cloudcupcake.sh
 ```
 ---
 
+## 📌 Lab Details:
+
+**Lab Name:**   https://www.cloudskillsboost.google/games/6394/labs/40266
+**Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40266)  
+
+## 🚀 Script for Automation:
+You can execute the automation script directly in Google Cloud Shell by running the following commands:
+1. Run the first code
+```bash
+curl -LO raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Extract%2C%20Analyze%2C%20and%20Translate%20Text%20from%20Images%20with%20the%20Cloud%20ML%20APIs/cloudcupcake.sh
+chmod +x cloudcupcake.sh
+./cloudcupcake.sh
+
+```
+2. Follow video instructions
+3. Run the next code
+
+```bash
+curl -LO raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Extract%2C%20Analyze%2C%20and%20Translate%20Text%20from%20Images%20with%20the%20Cloud%20ML%20APIs/cloudcupcake.sh
+chmod +x cloudcupcake.sh
+./cloudcupcake.sh
+
+```
+
+---
+
 🎉 Congratulations!
 If you’ve successfully completed the lab, that’s amazing! Keep going and finish the rest of the Arcade challenges.
 

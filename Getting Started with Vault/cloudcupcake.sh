@@ -1,50 +1,58 @@
 #!/bin/bash
-# cloudcupcake_vault.sh - Automates "Running Vault on Google Cloud" lab
+# cloudcupcake_vault_complete.sh - Full automation for Vault lab
 # Author: CloudCupcake 🍰
 
-echo "🚀 Starting Vault lab automation..."
+set -e
+
+echo "🚀 Starting Vault full lab automation..."
 
 # ================================
-# Task 1: Install Vault & start dev server
+# Install Vault
 # ================================
 echo "📦 Installing Vault..."
-wget https://releases.hashicorp.com/vault/1.8.0/vault_1.8.0_linux_amd64.zip
-sudo apt-get update && sudo apt-get install unzip jq -y
-unzip vault_1.8.0_linux_amd64.zip
+wget -q https://releases.hashicorp.com/vault/1.8.0/vault_1.8.0_linux_amd64.zip
+sudo apt-get update -y
+sudo apt-get install unzip jq -y
+unzip -o vault_1.8.0_linux_amd64.zip
 sudo mv vault /usr/local/bin/
 vault --version
 
+# ================================
+# Start Vault dev server
+# ================================
 echo "🔑 Starting Vault dev server in background..."
 nohup vault server -dev -dev-root-token-id=root > vault.log 2>&1 &
 sleep 5
 
 export VAULT_ADDR='http://127.0.0.1:8200'
 export VAULT_TOKEN=root
-echo "Vault server running at $VAULT_ADDR"
+
+# Wait for Vault to be ready
+echo "⏳ Waiting for Vault to be ready..."
+until vault status > /dev/null 2>&1; do sleep 1; done
+echo "✅ Vault is ready!"
 
 # ================================
-# Task 2: Secrets - create, copy, upload
+# Task 1: Create secret at secret/hello
 # ================================
 echo "🗝 Creating secret at secret/hello..."
 vault kv put secret/hello foo=world excited=yes
 vault kv get -format=json secret/hello | jq -r '.data.data.foo' > secret_hello.txt
 vault kv get -format=json secret/hello | jq -r '.data.data.excited' > secret_hello_excited.txt
-
-echo "📂 Uploading secrets to Cloud Storage..."
-gsutil cp secret_hello.txt gs://$DEVSHELL_PROJECT_ID
-gsutil cp secret_hello_excited.txt gs://$DEVSHELL_PROJECT_ID
+gsutil cp secret_hello.txt gs://$DEVSHELL_PROJECT_ID/
+gsutil cp secret_hello_excited.txt gs://$DEVSHELL_PROJECT_ID/
 
 # ================================
-# Task 3: KV secrets at kv/my-secret
+# Task 2: KV secrets at kv/my-secret
 # ================================
 echo "🗝 Creating secret at kv/my-secret..."
 vault secrets enable -path=kv kv
 vault kv put kv/my-secret value="s3c(eT"
 vault kv get -format=json kv/my-secret | jq -r '.data.value' > my_secret.txt
-gsutil cp my_secret.txt gs://$DEVSHELL_PROJECT_ID
+gsutil cp my_secret.txt gs://$DEVSHELL_PROJECT_ID/
 
 # ================================
-# Task 4: Vault Transit - encryption/decryption
+# Task 3: Transit encryption/decryption
 # ================================
 echo "🔐 Enabling transit secrets engine..."
 vault secrets enable transit
@@ -61,9 +69,21 @@ echo "🔓 Decrypting ciphertext..."
 DECRYPTED_B64=$(vault write -field=plaintext transit/decrypt/my-key ciphertext="$CIPHERTEXT")
 echo "$DECRYPTED_B64" | base64 --decode > decrypted_string.txt
 cat decrypted_string.txt
+gsutil cp decrypted_string.txt gs://$DEVSHELL_PROJECT_ID/
 
-echo "📂 Uploading decrypted string to Cloud Storage..."
-gsutil cp decrypted_string.txt gs://$DEVSHELL_PROJECT_ID
+# ================================
+# Task 4: Userpass auth
+# ================================
+echo "👤 Enabling userpass authentication..."
+vault auth enable userpass
+vault write auth/userpass/users/testuser password="pass123" policies=default
 
-echo "✅ Lab automation completed!"
+# ================================
+# Task 5: Token creation
+# ================================
+echo "🔑 Creating Vault token..."
+vault token create -format=json | jq -r ".auth.client_token" > token.txt
+gsutil cp token.txt gs://$DEVSHELL_PROJECT_ID/
+
+echo "✅ Vault lab automation completed!"
 echo "🎉 Subscribe to CloudCupcake 🍰"

@@ -45,18 +45,20 @@ chmod +x cloudcupcake.sh
 You can execute the automation script directly in Google Cloud Shell by running the following commands:
 1. Run the first code
 ```bash
-curl -LO raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Extract%2C%20Analyze%2C%20and%20Translate%20Text%20from%20Images%20with%20the%20Cloud%20ML%20APIs/cloudcupcake.sh
-chmod +x cloudcupcake.sh
+curl -LO https://raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Continuous%20Delivery%20with%20Jenkins%20in%20Kubernetes%20Engine/cloudcupcake.sh
+sudo chmod +x cloudcupcake.sh
 ./cloudcupcake.sh
+
 
 ```
 2. Follow video instructions
 3. Run the next code
 
 ```bash
-curl -LO raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Extract%2C%20Analyze%2C%20and%20Translate%20Text%20from%20Images%20with%20the%20Cloud%20ML%20APIs/cloudcupcake.sh
-chmod +x cloudcupcake.sh
-./cloudcupcake.sh
+curl -LO https://raw.githubusercontent.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/main/Continuous%20Delivery%20with%20Jenkins%20in%20Kubernetes%20Engine/cloudcupcake1.sh
+sudo chmod +x cloudcupcake1.sh
+./cloudcupcake1.sh
+
 
 ```
 

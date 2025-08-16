@@ -77,6 +77,21 @@ sudo chmod +x cloudcupcake1.sh
 ```
 
 ---
+## 📌 Lab Details:
+
+**Lab Name:**   Creating Dynamic Secrets for Google Cloud with Vault
+
+**Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40273)  
+
+## 🚀 Script for Automation:
+You can execute the automation script directly in Google Cloud Shell by running the following commands:
+```
+curl -LO https://github.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/raw/main/Creating%20Dynamic%20Secrets%20for%20Google%20Cloud%20with%20Vault/cloudcupcake.sh
+sudo chmod +x cloudcupcake.sh
+./cloudcupcake.sh
+
+```
+
 
 🎉 Congratulations!
 If you’ve successfully completed the lab, that’s amazing! Keep going and finish the rest of the Arcade challenges.

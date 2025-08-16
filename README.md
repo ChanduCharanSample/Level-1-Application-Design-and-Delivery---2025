@@ -91,7 +91,29 @@ sudo chmod +x cloudcupcake.sh
 ./cloudcupcake.sh
 
 ```
+---
 
+## 📌 Lab Details:
+
+**Lab Name:**   Cloud DNS: Traffic Steering using Geolocation Policy
+
+**Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40274)  
+
+## 🚀 Script for Automation:
+You can execute the automation script directly in Google Cloud Shell by running the following commands:
+1. Run the first code
+```
+curl -LO https://github.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/raw/main/Cloud%20DNS%3A%20Traffic%20Steering%20using%20Geolocation%20Policy/cloudcupcake.sh
+sudo chmod +x cloudcupcake.sh
+./cloudcupcake.sh
+```
+2. After getting 90/100 run the next code:
+
+```
+curl -LO https://github.com/ChanduCharanSample/Level-1-Application-Design-and-Delivery---2025/raw/main/Cloud%20DNS%3A%20Traffic%20Steering%20using%20Geolocation%20Policy/cloudcupcake1.sh
+sudo chmod +x cloudcupcake1.sh
+./cloudcupcake1.sh
+```
 
 🎉 Congratulations!
 If you’ve successfully completed the lab, that’s amazing! Keep going and finish the rest of the Arcade challenges.

@@ -76,14 +76,20 @@ ________________________________________________________________________________
 __________________________________________________________________________________________________________________________________________________________
 
 vault policy list
+
 vault policy list > policies.txt
+
 vault token capabilities $token  sys/policies/acl
+
 vault token capabilities $token  sys/policies/acl > token_capabilities.txt
+
 export PROJECT_ID=$(gcloud config get-value project)
+
 gsutil cp *.txt gs://$PROJECT_ID
 
 
 vault login $root_token
+
 vault read sys/policy
 
 tee example-policy.hcl <<EOF
@@ -186,14 +192,18 @@ vault write auth/userpass/users/security \
 
 
 vault kv put secret/security/first username=password
+
 vault kv put secret/security/second username=password
 
 
 
+
 vault kv put secret/appdev/first username=password
+
 vault kv put secret/appdev/beta-app/second username=password
 
 vault kv put secret/admin/first admin=password
+
 vault kv put secret/admin/supersecret/second admin=password
 
 

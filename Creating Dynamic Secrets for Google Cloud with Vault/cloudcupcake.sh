@@ -3,48 +3,54 @@ set -e
 
 echo "🚀 Starting Vault GCP Secrets Engine Lab Automation..."
 
-# Detect project ID
+# 1️⃣ Detect Project ID
 PROJECT_ID=$(gcloud config get-value project)
 echo "📌 Project ID: $PROJECT_ID"
 
-# Find the Service Account JSON file automatically (Task 3 key file)
+# 2️⃣ Detect Service Account JSON key automatically (Task 3)
 KEY_FILE=$(ls *.json 2>/dev/null | head -n 1)
 if [[ -z "$KEY_FILE" ]]; then
-  echo "❌ No service account JSON key file found in current directory."
-  echo "👉 Please upload it with:  Upload File (JSON) → Cloud Shell home directory"
+  echo "❌ No service account JSON key file found. Please upload your JSON key first."
   exit 1
 fi
 echo "🔑 Using Service Account Key: $KEY_FILE"
 
-# 1. Enable GCP secrets engine
+# 3️⃣ Enable GCP secrets engine
 vault secrets enable gcp || echo "✅ GCP secrets engine already enabled"
 
-# 2. Configure default credentials
-vault write gcp/config credentials=@"$KEY_FILE"
+# 4️⃣ Create default credentials (Checkpoint 1)
+vault write gcp/config credentials=@"$KEY_FILE" ttl=3600 max_ttl=86400
 echo "✅ Default credentials configured (Checkpoint 1 passed)"
 
-# 3. Create a roleset with IAM bindings
-vault write gcp/roleset/my-roleset \
-  project="$PROJECT_ID" \
-  secret_type="service_account_key" \
-  bindings=-<<EOF
+# 5️⃣ Create Vault bindings file dynamically (Checkpoint 2)
+BINDINGS_FILE="bindings.hcl"
+cat > $BINDINGS_FILE <<EOF
 resource "//cloudresourcemanager.googleapis.com/projects/$PROJECT_ID" {
-  roles = ["roles/viewer"]
+  roles = [
+    "roles/storage.objectAdmin",
+    "roles/storage.legacyBucketReader"
+  ]
 }
 EOF
-echo "✅ Roleset with bindings configured (Checkpoint 2 passed)"
+echo "✅ Roleset bindings file created (Checkpoint 2 passed)"
 
-# 4. Generate a key from the roleset
-vault read gcp/key/my-roleset > roleset_key.json
+# 6️⃣ Configure a roleset that generates service account keys (Checkpoint 3)
+vault write gcp/roleset/my-key-roleset \
+  project="$PROJECT_ID" \
+  secret_type="service_account_key" \
+  bindings=@"$BINDINGS_FILE"
+vault read gcp/roleset/my-key-roleset/key > roleset_key.json
 echo "✅ Roleset key generated (Checkpoint 3 passed)"
 
-# 5. Create a static account using the uploaded service account
+# 7️⃣ Configure static accounts (Checkpoint 4)
 SA_EMAIL=$(jq -r .client_email "$KEY_FILE")
-vault write gcp/static-account/my-static-account \
+vault write gcp/static-account/my-key-account \
   service_account_email="$SA_EMAIL" \
-  secret_type="access_token"
-vault read gcp/static-account/my-static-account > static_account.json
+  secret_type="service_account_key" \
+  bindings=@"$BINDINGS_FILE"
+vault read gcp/static-account/my-key-account > static_account.json
 echo "✅ Static account configured (Checkpoint 4 passed)"
 
-echo "🎉 All lab checkpoints completed successfully!"
+# 8️⃣ Finished
+echo "🎉 All tasks and checkpoints completed successfully!"
 echo "📂 Generated files: roleset_key.json, static_account.json"

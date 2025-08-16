@@ -51,7 +51,7 @@ chmod +x cloudcupcake.sh
 
 ## 📌 Lab Details:
 
-**Lab Name:**   https://www.cloudskillsboost.google/games/6394/labs/40266
+**Lab Name:**   Continuous Delivery with Jenkins in Kubernetes Engine
 
 **Lab Link:** [Click here to open the lab](https://www.cloudskillsboost.google/games/6394/labs/40266)  
 

@@ -1,11 +1,17 @@
 curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
 
+
 sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
+
+
 
 sudo apt-get update
 sudo apt-get install vault
 
+
+
 vault
+
 
 vault server -dev
 
@@ -81,17 +87,19 @@ vault login $root_token
 vault read sys/policy
 
 tee example-policy.hcl <<EOF
-# List, create, update, and delete key/value secrets
+
+#List, create, update, and delete key/value secrets
+
 path "secret/*"
 {
   capabilities = ["create", "read", "update", "delete", "list", "sudo"]
 }
-# Manage secrets engines
+#Manage secrets engines
 path "sys/mounts/*"
 {
   capabilities = ["create", "read", "update", "delete", "list", "sudo"]
 }
-# List existing secrets engines.
+#List existing secrets engines.
 path "sys/mounts"
 {
   capabilities = ["read"]
@@ -105,7 +113,9 @@ vault policy write example-policy example-policy.hcl
 
 
 tee example-policy.hcl <<EOF
-# List, create, update, and delete key/value secrets
+
+#List, create, update, and delete key/value secrets
+
 path "secret/*"
 {
   capabilities = ["create", "read", "update", "delete", "list", "sudo"]
@@ -120,7 +130,9 @@ path "sys/mounts"
 {
   capabilities = ["read"]
 }
-# List auth methods
+
+#List auth methods
+
 path "sys/auth"
 {
   capabilities = ["read"]

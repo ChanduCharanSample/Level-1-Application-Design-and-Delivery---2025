@@ -1,73 +1,50 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Starting automation for 'Creating Dynamic Secrets for Google Cloud with Vault' lab..."
+echo "🚀 Starting Vault GCP Secrets Engine Lab Automation..."
 
-# -------------------------------
-# Step 1: Auto-detect Service Account JSON
-# -------------------------------
-KEY_FILE=$(find ~ -maxdepth 1 -type f -name "*.json" | head -n 1)
+# Detect project ID
+PROJECT_ID=$(gcloud config get-value project)
+echo "📌 Project ID: $PROJECT_ID"
 
+# Find the Service Account JSON file automatically (Task 3 key file)
+KEY_FILE=$(ls *.json 2>/dev/null | head -n 1)
 if [[ -z "$KEY_FILE" ]]; then
-  echo "❌ ERROR: No Service Account JSON key found in home directory."
-  echo "➡️ Please download it from Task 3 and place it in your home (~) directory."
+  echo "❌ No service account JSON key file found in current directory."
+  echo "👉 Please upload it with:  Upload File (JSON) → Cloud Shell home directory"
   exit 1
 fi
+echo "🔑 Using Service Account Key: $KEY_FILE"
 
-echo "✅ Found Service Account key: $KEY_FILE"
+# 1. Enable GCP secrets engine
+vault secrets enable gcp || echo "✅ GCP secrets engine already enabled"
 
-# -------------------------------
-# Step 2: Enable GCP Secrets Engine
-# -------------------------------
-echo "⚡ Enabling GCP secrets engine in Vault..."
-vault secrets enable gcp || echo "ℹ️ GCP secrets engine already enabled."
+# 2. Configure default credentials
+vault write gcp/config credentials=@"$KEY_FILE"
+echo "✅ Default credentials configured (Checkpoint 1 passed)"
 
-# -------------------------------
-# Step 3: Configure Vault with SA credentials
-# -------------------------------
-echo "⚡ Configuring Vault with default GCP credentials..."
-vault write gcp/config credentials=@$KEY_FILE
-
-# -------------------------------
-# Step 4: Create Roleset for Dynamic Keys
-# -------------------------------
-echo "⚡ Creating roleset 'my-roleset'..."
+# 3. Create a roleset with IAM bindings
 vault write gcp/roleset/my-roleset \
-    project="$(gcloud config get-value project)" \
-    secret_type="service_account_key" \
-    bindings='{"roles/viewer" = ["serviceAccount:'"$(gcloud config get-value project)"'.svc.id.goog[default/default]"]}'
+  project="$PROJECT_ID" \
+  secret_type="service_account_key" \
+  bindings=-<<EOF
+resource "//cloudresourcemanager.googleapis.com/projects/$PROJECT_ID" {
+  roles = ["roles/viewer"]
+}
+EOF
+echo "✅ Roleset with bindings configured (Checkpoint 2 passed)"
 
-# -------------------------------
-# Step 5: Generate Dynamic Service Account Key (checkpoint)
-# -------------------------------
-echo "⚡ Generating a dynamic service account key..."
-vault read gcp/key/my-roleset || true
+# 4. Generate a key from the roleset
+vault read gcp/key/my-roleset > roleset_key.json
+echo "✅ Roleset key generated (Checkpoint 3 passed)"
 
-# -------------------------------
-# Step 6: Configure Static Account
-# -------------------------------
-echo "⚡ Configuring a static account..."
-SA_EMAIL=$(gcloud iam service-accounts list --format="value(email)" | head -n 1)
-
-if [[ -z "$SA_EMAIL" ]]; then
-  echo "❌ ERROR: No service account found in project."
-  exit 1
-fi
-
+# 5. Create a static account using the uploaded service account
+SA_EMAIL=$(jq -r .client_email "$KEY_FILE")
 vault write gcp/static-account/my-static-account \
-    service_account_email="$SA_EMAIL" \
-    bindings='{"roles/editor"=["*"]}'
+  service_account_email="$SA_EMAIL" \
+  secret_type="access_token"
+vault read gcp/static-account/my-static-account > static_account.json
+echo "✅ Static account configured (Checkpoint 4 passed)"
 
-# -------------------------------
-# Step 7: Verify Static Account
-# -------------------------------
-echo "⚡ Reading static account credentials..."
-vault read gcp/static-account/my-static-account/key || true
-
-echo "🎉 All checkpoints configured successfully!"
-echo "✅ Default credentials"
-echo "✅ Rolesets bindings"
-echo "✅ Dynamic service account key roleset"
-echo "✅ Static account"
-
-echo "👉 Now go back to Qwiklabs and check your progress!"
+echo "🎉 All lab checkpoints completed successfully!"
+echo "📂 Generated files: roleset_key.json, static_account.json"

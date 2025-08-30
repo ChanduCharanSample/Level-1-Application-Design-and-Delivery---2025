@@ -1,18 +1,9 @@
-curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo apt-key add -
-
-
-sudo apt-add-repository "deb [arch=amd64] https://apt.releases.hashicorp.com $(lsb_release -cs) main"
-
-
-
-sudo apt-get update
-sudo apt-get install vault
-
-
-
-vault
-
-
+sudo mkdir -p /etc/apt/keyrings && \
+curl -fsSL https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/hashicorp.gpg && \
+echo "deb [signed-by=/etc/apt/keyrings/hashicorp.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list && \
+sudo apt-get update && \
+sudo apt-get install -y vault && \
+vault --version
 vault server -dev
 
 
